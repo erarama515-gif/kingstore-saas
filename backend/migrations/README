@@ -1,0 +1,13 @@
+Alembic migrations directory.
+
+Generate a new revision:
+    flask db migrate -m "describe the change"
+
+Apply pending revisions:
+    flask db upgrade
+
+Downgrade one step:
+    flask db downgrade -1
+
+Revisions live under ``versions/`` and follow the naming convention defined
+in alembic.ini.

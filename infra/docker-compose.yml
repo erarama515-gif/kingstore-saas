@@ -1,0 +1,102 @@
+# =============================================================================
+# Kingstore SaaS — local development stack
+# Usage from repo root: docker compose -f infra/docker-compose.yml up
+# =============================================================================
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: kingstore-db
+    environment:
+      POSTGRES_USER: kingstore
+      POSTGRES_PASSWORD: kingstore
+      POSTGRES_DB: kingstore
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kingstore -d kingstore"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: kingstore-redis
+    command: ["redis-server", "--save", "60", "1", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  app:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: kingstore-app
+    env_file:
+      - ../backend/.env
+    environment:
+      # Override host names so they match the compose network
+      DATABASE_URL: postgresql+psycopg2://kingstore:kingstore@db:5432/kingstore
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      RATELIMIT_STORAGE_URI: redis://redis:6379/3
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../backend:/app
+      - app_storage:/app/storage
+    # Dev convenience: hot-reload via Flask's dev server. Production CMD in
+    # the Dockerfile uses gunicorn — override here only for local dev.
+    command: ["flask", "--app", "app.wsgi:app", "run", "--host=0.0.0.0", "--port=8000", "--debug"]
+
+  worker:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: kingstore-worker
+    env_file:
+      - ../backend/.env
+    environment:
+      DATABASE_URL: postgresql+psycopg2://kingstore:kingstore@db:5432/kingstore
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ../backend:/app
+      - app_storage:/app/storage
+    command: ["celery", "-A", "app.celery_app.celery", "worker", "-l", "info", "--concurrency=2"]
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: kingstore-nginx
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/kingstore.conf:/etc/nginx/conf.d/default.conf:ro
+
+volumes:
+  pg_data:
+  redis_data:
+  app_storage:

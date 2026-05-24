@@ -1,0 +1,46 @@
+[project]
+name = "kingstore-saas"
+version = "0.1.0"
+description = "Multi-tenant SaaS ERP for mobile shops"
+requires-python = ">=3.12"
+authors = [{ name = "Kingstore Engineering" }]
+readme = "../README.md"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+extend-exclude = ["migrations/versions"]
+
+[tool.ruff.lint]
+select = [
+  "E",   # pycodestyle errors
+  "W",   # pycodestyle warnings
+  "F",   # pyflakes
+  "I",   # isort
+  "B",   # bugbear
+  "UP",  # pyupgrade
+  "C4",  # comprehensions
+  "SIM", # simplify
+  "RUF", # ruff-specific
+]
+ignore = [
+  "E501",  # line length handled by formatter
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = []
+exclude = ["migrations/"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --cov=app --cov-report=term-missing"
+markers = [
+  "unit: fast tests without external dependencies",
+  "integration: tests that touch the database or redis",
+]

@@ -1,0 +1,18 @@
+[Unit]
+Description=Kingstore SaaS — Next.js frontend
+After=network.target kingstore-api.service
+
+[Service]
+Type=simple
+User=kingstore
+Group=kingstore
+WorkingDirectory=/srv/kingstore/frontend
+Environment="NODE_ENV=production"
+Environment="PORT=3001"
+Environment="NEXT_PUBLIC_API_BASE=http://127.0.0.1:8000"
+ExecStart=/usr/bin/node .next/standalone/server.js
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

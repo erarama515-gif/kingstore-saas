@@ -1,0 +1,25 @@
+[Unit]
+Description=Kingstore SaaS — Flask API (gunicorn)
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=simple
+User=kingstore
+Group=kingstore
+WorkingDirectory=/srv/kingstore/backend
+Environment="PATH=/srv/kingstore/backend/.venv/bin"
+EnvironmentFile=/srv/kingstore/backend/.env
+ExecStart=/srv/kingstore/backend/.venv/bin/gunicorn \
+    --bind 127.0.0.1:8000 \
+    --workers 4 \
+    --worker-class gthread \
+    --threads 2 \
+    --access-logfile - \
+    --error-logfile - \
+    app.wsgi:app
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
