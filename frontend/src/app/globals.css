@@ -4,51 +4,148 @@
 
 @layer base {
   :root {
+    /* Light — Stripe/Linear-inspired neutrals with a confident brand violet/indigo */
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --foreground: 224 21% 12%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
-    --radius: 0.5rem;
+    --card-foreground: 224 21% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 21% 12%;
+    --primary: 243 75% 58%;          /* indigo-600 */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 13% 95%;
+    --secondary-foreground: 224 21% 12%;
+    --muted: 220 13% 96%;
+    --muted-foreground: 220 9% 46%;
+    --accent: 243 75% 96%;           /* tinted indigo */
+    --accent-foreground: 243 75% 30%;
+    --success: 158 64% 40%;
+    --success-foreground: 0 0% 100%;
+    --warning: 35 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 243 75% 58%;
+    --radius: 0.75rem;
+
+    /* Chart palette (in order) */
+    --chart-1: 243 75% 58%;          /* indigo */
+    --chart-2: 158 64% 40%;          /* emerald */
+    --chart-3: 35 92% 50%;           /* amber */
+    --chart-4: 199 89% 48%;          /* sky */
+    --chart-5: 271 81% 56%;          /* purple */
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 6.5%;
-    --card-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+    /* Dark — true-black-ish surface with elevated cards (slightly lighter) */
+    --background: 224 32% 6%;
+    --foreground: 220 13% 95%;
+    --card: 224 28% 9%;
+    --card-foreground: 220 13% 95%;
+    --popover: 224 28% 9%;
+    --popover-foreground: 220 13% 95%;
+    --primary: 243 95% 75%;          /* indigo-300 — brighter on dark */
+    --primary-foreground: 224 21% 12%;
+    --secondary: 224 24% 14%;
+    --secondary-foreground: 220 13% 95%;
+    --muted: 224 24% 12%;
+    --muted-foreground: 220 9% 60%;
+    --accent: 224 24% 16%;
+    --accent-foreground: 220 13% 95%;
+    --success: 158 64% 52%;
+    --success-foreground: 224 21% 12%;
+    --warning: 35 92% 60%;
+    --warning-foreground: 224 21% 12%;
+    --destructive: 0 72% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 224 22% 18%;
+    --input: 224 22% 18%;
+    --ring: 243 95% 75%;
+
+    --chart-1: 243 90% 70%;
+    --chart-2: 158 70% 55%;
+    --chart-3: 35 92% 60%;
+    --chart-4: 199 89% 60%;
+    --chart-5: 271 81% 70%;
   }
 
   * { @apply border-border; }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
+    font-family:
+      "Inter", "Cairo", -apple-system, BlinkMacSystemFont, "Segoe UI",
+      Roboto, Oxygen, Ubuntu, sans-serif;
   }
+
+  /* Numeric / monospace columns: tabular figures */
+  .tabular { font-variant-numeric: tabular-nums; }
+
   /* RTL polish */
   [dir="rtl"] table { text-align: right; }
+
+  /* Sleeker scrollbars */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/30;
+  }
+  ::-webkit-scrollbar-track { background: transparent; }
+
+  /* Selection */
+  ::selection {
+    background: hsl(var(--primary) / 0.18);
+    color: hsl(var(--foreground));
+  }
+}
+
+@layer components {
+  /* Soft elevated card */
+  .card-elevated {
+    @apply rounded-xl border bg-card shadow-sm transition-shadow;
+  }
+  .card-elevated:hover { @apply shadow-md; }
+
+  /* KPI value */
+  .kpi-value {
+    @apply text-2xl font-bold tabular tracking-tight;
+  }
+
+  /* Subtle gradient text for hero numbers */
+  .text-gradient {
+    background-image: linear-gradient(
+      135deg,
+      hsl(var(--primary)) 0%,
+      hsl(var(--chart-5)) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Glass surface */
+  .surface-glass {
+    @apply backdrop-blur-md bg-background/60 border border-border/60;
+  }
+
+  /* Status pills */
+  .pill {
+    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium;
+  }
+  .pill-success { @apply bg-emerald-500/10 text-emerald-700 dark:text-emerald-300; }
+  .pill-warn    { @apply bg-amber-500/10 text-amber-700 dark:text-amber-300; }
+  .pill-danger  { @apply bg-red-500/10 text-red-700 dark:text-red-300; }
+  .pill-info    { @apply bg-sky-500/10 text-sky-700 dark:text-sky-300; }
+  .pill-muted   { @apply bg-muted text-muted-foreground; }
 }

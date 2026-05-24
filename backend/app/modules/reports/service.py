@@ -504,3 +504,86 @@ def top_products(
             profit=(Decimal(rev) - Decimal(cogs)).quantize(Decimal("0.01")),
         ))
     return out
+
+
+# --- Sales trend (daily series) --------------------------------------------
+
+@dataclass(frozen=True, slots=True)
+class TrendPoint:
+    """One day on the sales trend chart."""
+    date: date_t
+    sales: Decimal      # gross revenue (Sale.total)
+    profit: Decimal     # revenue - COGS (no expense subtraction; per-day basis)
+    invoices: int
+
+
+def sales_trend(
+    *,
+    tenant_id: uuid.UUID,
+    days: int = 30,
+    branch_id: Optional[uuid.UUID] = None,
+    end_date: Optional[date_t] = None,
+) -> list[TrendPoint]:
+    """Daily sales + gross profit for the last ``days`` days, inclusive.
+
+    Returns an entry for every day in the range, even days with zero activity
+    (so the chart renders a continuous line). Cheap: one GROUP BY query plus
+    a small Python merge.
+    """
+    session = db.session
+    end = end_date or date_t.today()
+    start = end - timedelta(days=max(1, days) - 1)
+
+    # Aggregate sales totals grouped by day.
+    rev_stmt = (
+        select(
+            Sale.sale_date,
+            func.count(Sale.id),
+            func.coalesce(func.sum(Sale.total), 0),
+        )
+        .where(
+            Sale.tenant_id == tenant_id,
+            Sale.deleted_at.is_(None),
+            Sale.sale_date >= start,
+            Sale.sale_date <= end,
+        )
+        .group_by(Sale.sale_date)
+    )
+    if branch_id is not None:
+        rev_stmt = rev_stmt.where(Sale.branch_id == branch_id)
+    rev_rows = {r[0]: (int(r[1]), Decimal(r[2])) for r in session.execute(rev_stmt).all()}
+
+    # Aggregate COGS by day via SaleLine join.
+    cogs_stmt = (
+        select(
+            Sale.sale_date,
+            func.coalesce(func.sum(SaleLine.qty * SaleLine.cost_snapshot), 0),
+        )
+        .select_from(SaleLine)
+        .join(Sale, Sale.id == SaleLine.sale_id)
+        .where(
+            Sale.tenant_id == tenant_id,
+            Sale.deleted_at.is_(None),
+            Sale.sale_date >= start,
+            Sale.sale_date <= end,
+        )
+        .group_by(Sale.sale_date)
+    )
+    if branch_id is not None:
+        cogs_stmt = cogs_stmt.where(Sale.branch_id == branch_id)
+    cogs_rows = {r[0]: Decimal(r[1]) for r in session.execute(cogs_stmt).all()}
+
+    # Walk every day in range so the series is continuous (no gaps).
+    points: list[TrendPoint] = []
+    cur = start
+    while cur <= end:
+        invoices, sales = rev_rows.get(cur, (0, Decimal("0")))
+        cogs = cogs_rows.get(cur, Decimal("0"))
+        points.append(TrendPoint(
+            date=cur,
+            sales=sales.quantize(Decimal("0.01")),
+            profit=(sales - cogs).quantize(Decimal("0.01")),
+            invoices=invoices,
+        ))
+        cur += timedelta(days=1)
+    return points

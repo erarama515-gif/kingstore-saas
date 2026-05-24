@@ -192,3 +192,28 @@ def top_products_route():
         }
         for r in rows
     ])
+
+
+@reports_bp.get("/sales-trend")
+@require_perm(Permission.REPORTS_SALES)
+def sales_trend_route():
+    """Daily sales + profit for the last N days (default 30, max 365)."""
+    tid = _tenant_id()
+    try:
+        days = max(1, min(365, int(request.args.get("days", 30))))
+    except (TypeError, ValueError):
+        days = 30
+    points = service.sales_trend(
+        tenant_id=tid,
+        days=days,
+        branch_id=_parse_uuid(request.args.get("branch_id")),
+    )
+    return ok([
+        {
+            "date": p.date.isoformat(),
+            "sales": str(p.sales),
+            "profit": str(p.profit),
+            "invoices": p.invoices,
+        }
+        for p in points
+    ])
