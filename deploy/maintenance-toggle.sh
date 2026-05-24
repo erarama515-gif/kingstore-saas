@@ -14,7 +14,7 @@ case "${1:-}" in
     start)
         systemctl start kingstore-api.service kingstore-web.service
         sleep 2
-        curl -fsS "http://127.0.0.1:8000/api/v1/health" && echo " — API OK"
+        curl -fsS "http://127.0.0.1:8001/api/v1/health" && echo " — API OK"
         echo "Kingstore demo is ONLINE."
         ;;
     *)
