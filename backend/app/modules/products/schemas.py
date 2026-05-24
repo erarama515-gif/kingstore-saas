@@ -28,6 +28,9 @@ class ProductCreate(BaseSchema):
     cost: Decimal = Field(default=Decimal("0"), ge=Decimal("0"), max_digits=14, decimal_places=2)
     price: Decimal = Field(default=Decimal("0"), ge=Decimal("0"), max_digits=14, decimal_places=2)
     reorder_point: int = Field(default=0, ge=0)
+    track_by_imei: bool = False
+    track_by_serial: bool = False
+    warranty_period_days: int = Field(default=0, ge=0, le=3650)
     description: Optional[str] = Field(default=None, max_length=500)
 
 
@@ -40,6 +43,9 @@ class ProductUpdate(BaseSchema):
     cost: Optional[Decimal] = Field(default=None, ge=Decimal("0"), max_digits=14, decimal_places=2)
     price: Optional[Decimal] = Field(default=None, ge=Decimal("0"), max_digits=14, decimal_places=2)
     reorder_point: Optional[int] = Field(default=None, ge=0)
+    track_by_imei: Optional[bool] = None
+    track_by_serial: Optional[bool] = None
+    warranty_period_days: Optional[int] = Field(default=None, ge=0, le=3650)
     is_active: Optional[bool] = None
     description: Optional[str] = Field(default=None, max_length=500)
 
@@ -56,6 +62,9 @@ class ProductResponse(BaseSchema):
     cost: Decimal
     price: Decimal
     reorder_point: int
+    track_by_imei: bool = False
+    track_by_serial: bool = False
+    warranty_period_days: int = 0
     is_active: bool
     description: Optional[str]
     created_at: datetime
