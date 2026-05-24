@@ -115,8 +115,13 @@ class StockLevel(Base, TimestampMixin, TenantScopedMixin):
         Numeric(14, 4), nullable=False, default=Decimal("0"), server_default="0"
     )
 
-    product = relationship("Product", lazy="joined")
-    branch = relationship("Branch", lazy="joined")
+    # IMPORTANT: ``lazy="select"`` (not ``"joined"``).
+    # The service issues ``SELECT ... FOR UPDATE`` to lock the row before a
+    # decrement. Postgres rejects FOR UPDATE on the nullable side of an outer
+    # join, which is exactly what a joined-load produces. With lazy="select"
+    # the lock query stays clean and the relationships still resolve on access.
+    product = relationship("Product", lazy="select")
+    branch = relationship("Branch", lazy="select")
 
     def __repr__(self) -> str:  # pragma: no cover
         return f"<StockLevel p={self.product_id} b={self.branch_id} qty={self.qty_on_hand}>"
