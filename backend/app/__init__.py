@@ -6,6 +6,12 @@ This package is intentionally tiny — actual wiring lives in ``app.config``,
 
 from __future__ import annotations
 
+# IMPORTANT: keep ``__version__`` defined *before* any sub-package imports.
+# Modules like ``app.api.v1.health`` do ``from app import __version__``;
+# defining it after the blueprint imports causes a circular ImportError
+# during package initialization.
+__version__ = "0.1.0"
+
 import logging
 import os
 from typing import Optional
@@ -18,9 +24,6 @@ from app.core.errors import register_error_handlers
 from app.core.tenant_context import register_tenant_hooks
 from app.core.security.headers import register_security_headers
 from app.api.v1 import api_v1_bp
-
-
-__version__ = "0.1.0"
 
 
 def create_app(config_name: Optional[str] = None) -> Flask:
