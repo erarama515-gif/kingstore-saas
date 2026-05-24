@@ -11,6 +11,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 
 export default function LoginPage() {
   const router = useRouter();
+  // Pre-fill with "demo" for the live trial URL. Real deployments will read
+  // this from the subdomain (e.g. shop1.kingstore.app → "shop1").
+  const [tenantSlug, setTenantSlug] = useState("demo");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -19,7 +22,7 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const data = await login(username.trim(), password);
+      const data = await login(username.trim(), password, tenantSlug.trim().toLowerCase());
       setTokens(data.tokens);
       toast.success("تم تسجيل الدخول");
       router.replace("/dashboard");
@@ -43,6 +46,18 @@ export default function LoginPage() {
         <CardContent>
           <form onSubmit={onSubmit} className="space-y-4">
             <div className="space-y-2">
+              <label className="text-sm font-medium">
+                المتجر <span className="text-xs text-muted-foreground">(tenant slug)</span>
+              </label>
+              <Input
+                value={tenantSlug}
+                onChange={(e) => setTenantSlug(e.target.value)}
+                required
+                placeholder="demo"
+                dir="ltr"
+              />
+            </div>
+            <div className="space-y-2">
               <label className="text-sm font-medium">اسم المستخدم</label>
               <Input
                 value={username}
@@ -64,6 +79,18 @@ export default function LoginPage() {
             <Button type="submit" disabled={loading} className="w-full">
               {loading ? "جاري الدخول..." : "تسجيل الدخول"}
             </Button>
+            <div className="rounded-md border border-dashed border-primary/40 bg-primary/5 p-3 text-xs space-y-1">
+              <div className="font-semibold text-primary">حساب تجريبي للعرض</div>
+              <div className="font-mono" dir="ltr">
+                tenant: <span className="font-bold">demo</span>
+              </div>
+              <div className="font-mono" dir="ltr">
+                user: <span className="font-bold">admin</span>
+              </div>
+              <div className="font-mono" dir="ltr">
+                password: <span className="font-bold">Demo12345678</span>
+              </div>
+            </div>
             <div className="text-center text-sm text-muted-foreground pt-2">
               ليس لديك حساب؟{" "}
               <Link href="/signup" className="text-primary hover:underline">
