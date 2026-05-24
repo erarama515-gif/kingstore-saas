@@ -45,16 +45,22 @@ def ready() -> tuple:
         checks["database"] = f"error: {exc.__class__.__name__}"
         overall_ok = False
 
-    try:
-        if redis_client is None:
+    # Redis is OPTIONAL — if REDIS_URL is empty the client stays None on
+    # purpose and we should report ``disabled`` (informational), not error.
+    if redis_client is None:
+        if current_app.config.get("REDIS_URL"):
+            # URL provided but client failed to initialize — that IS a problem.
             checks["redis"] = "error: not initialized"
             overall_ok = False
         else:
+            checks["redis"] = "disabled"
+    else:
+        try:
             redis_client.ping()
             checks["redis"] = "ok"
-    except Exception as exc:  # noqa: BLE001
-        checks["redis"] = f"error: {exc.__class__.__name__}"
-        overall_ok = False
+        except Exception as exc:  # noqa: BLE001
+            checks["redis"] = f"error: {exc.__class__.__name__}"
+            overall_ok = False
 
     body = {
         "status": "ok" if overall_ok else "degraded",
