@@ -81,6 +81,22 @@ class Product(Base, TimestampMixin, SoftDeleteMixin, TenantScopedMixin):
         nullable=False, default=0, server_default="0"
     )
 
+    # Per-unit IMEI/Serial tracking. Phones flip ``track_by_imei`` on; other
+    # serialized goods (laptops, cameras) flip ``track_by_serial``. Both off
+    # for normal accessories — those remain pure inventory items.
+    track_by_imei: Mapped[bool] = mapped_column(
+        nullable=False, default=False, server_default="false"
+    )
+    track_by_serial: Mapped[bool] = mapped_column(
+        nullable=False, default=False, server_default="false"
+    )
+    # Default warranty granted to the buyer at point of sale, in days.
+    # Snapshotted onto the DeviceInstance at sale time so later config
+    # changes don't retroactively alter past warranties.
+    warranty_period_days: Mapped[int] = mapped_column(
+        nullable=False, default=0, server_default="0"
+    )
+
     # When False the product is hidden from POS but kept for historical
     # references. Soft-delete via ``deleted_at`` is reserved for "this product
     # never should have existed" cases.
@@ -89,6 +105,11 @@ class Product(Base, TimestampMixin, SoftDeleteMixin, TenantScopedMixin):
     )
 
     description: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+
+    @property
+    def is_tracked(self) -> bool:
+        """True if this product requires per-unit identity tracking."""
+        return bool(self.track_by_imei or self.track_by_serial)
 
     def __repr__(self) -> str:  # pragma: no cover
         return f"<Product {self.code or self.barcode or self.name}>"

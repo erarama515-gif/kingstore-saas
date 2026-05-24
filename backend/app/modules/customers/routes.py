@@ -198,3 +198,31 @@ def statement_route(customer_id: uuid.UUID):
         lines=[CustomerStatementLine(**l) for l in payload["lines"]],
     )
     return ok(resp.model_dump(mode="json"))
+
+
+@customers_bp.get("/<uuid:customer_id>/devices")
+@require_perm(Permission.CUSTOMERS_READ)
+def customer_devices_route(customer_id: uuid.UUID):
+    """List all devices owned by this customer (status=sold or under_repair)."""
+    tid = _tenant_id()
+    # Verify the customer belongs to this tenant first
+    cust = repo.get_by_id(db.session, customer_id)
+    if cust is None or cust.tenant_id != tid:
+        from werkzeug.exceptions import NotFound
+        raise NotFound("Customer not found.")
+    from app.modules.devices import service as device_service
+    devices = device_service.list_for_customer(tenant_id=tid, customer_id=customer_id)
+    return ok([
+        {
+            "id": str(d.id),
+            "product_id": str(d.product_id),
+            "product_name": getattr(d.product, "name", None),
+            "imei": d.imei,
+            "serial_number": d.serial_number,
+            "status": d.status.value,
+            "sold_at": d.sold_at.isoformat() if d.sold_at else None,
+            "warranty_ends_at": d.warranty_ends_at.isoformat() if d.warranty_ends_at else None,
+            "is_under_warranty": d.is_under_warranty,
+        }
+        for d in devices
+    ])

@@ -28,6 +28,7 @@ from app.modules.suppliers import models as _suppliers_models  # noqa: F401
 from app.modules.accounting import models as _accounting_models  # noqa: F401
 from app.modules.products import models as _products_models  # noqa: F401
 from app.modules.inventory import models as _inventory_models  # noqa: F401
+from app.modules.devices import models as _devices_models  # noqa: F401
 from app.modules.sales import models as _sales_models  # noqa: F401
 from app.modules.expenses import models as _expenses_models  # noqa: F401
 from app.modules.treasury import models as _treasury_models  # noqa: F401

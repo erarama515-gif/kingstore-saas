@@ -12,6 +12,7 @@ from app.api.v1.health import health_bp
 from app.modules.accounting.routes import accounting_bp
 from app.modules.auth.routes import auth_bp
 from app.modules.customers.routes import customers_bp
+from app.modules.devices.routes import devices_bp
 from app.modules.inventory.routes import inventory_bp
 from app.modules.capital.routes import capital_bp
 from app.modules.expenses.routes import expenses_bp
@@ -37,6 +38,7 @@ api_v1_bp.register_blueprint(treasury_bp)
 api_v1_bp.register_blueprint(capital_bp)
 api_v1_bp.register_blueprint(repairs_bp)
 api_v1_bp.register_blueprint(reports_bp)
+api_v1_bp.register_blueprint(devices_bp)
 
 # Future module registration goes here, e.g.:
 #   from app.modules.users.routes import users_bp

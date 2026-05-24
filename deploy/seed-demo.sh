@@ -70,6 +70,37 @@ make_product "iPhone 15 Pro Max" "آيفون 15 برو ماكس"        mobile  
 make_product "Samsung S24 Ultra" "سامسونج S24 ألترا"        mobile     M-S24U    42000  52000  5
 make_product "Samsung A55"       "سامسونج A55"              mobile     M-A55     10500  13000  10
 make_product "Xiaomi Redmi 13"   "شاومي ريدمي 13"           mobile     M-RD13    4200   5500   12
+
+# Enable IMEI tracking + 1-year warranty on mobile phones (post-create patch).
+say "Enabling IMEI tracking + 12-month warranty on mobile phones..."
+for code in M-IPH15 M-IPH15PM M-S24U M-A55 M-RD13; do
+    pid="${PIDS[$code]}"
+    [ -z "$pid" ] && continue
+    curl -sS -X PATCH "$API/api/v1/products/$pid" "${H[@]}" \
+        -d '{"track_by_imei": true, "warranty_period_days": 365}' >/dev/null
+done
+
+# Pre-register a few demo IMEIs as in-stock devices so the /devices page
+# isn't empty on first load. Real shops would do this at receiving time.
+say "Registering 6 sample IMEIs as in-stock devices..."
+make_device() {
+    local pid="$1"; shift
+    local imei="$1"; shift
+    local cost="$1"
+    curl -sS -X POST "$API/api/v1/devices/" "${H[@]}" -d "{
+        \"product_id\": \"$pid\",
+        \"branch_id\": \"$BRANCH_ID\",
+        \"imei\": \"$imei\",
+        \"purchase_cost\": \"$cost\"
+    }" >/dev/null
+}
+make_device "${PIDS[M-IPH15]}"    "356123456789012" 28000
+make_device "${PIDS[M-IPH15]}"    "356123456789013" 28000
+make_device "${PIDS[M-IPH15PM]}"  "356987654321001" 48000
+make_device "${PIDS[M-S24U]}"     "359111222333444" 42000
+make_device "${PIDS[M-A55]}"      "359222333444555" 10500
+make_device "${PIDS[M-RD13]}"     "861333444555666" 4200
+echo "  ✓ 6 demo IMEIs registered"
 make_product "Anker Charger 65W" "شاحن أنكر 65 وات"         accessory  A-ANK65   1100   1500   25
 make_product "USB-C Cable 1m"    "كابل USB-C - 1 متر"       accessory  A-USBC1   80     150    80
 make_product "Glass Protector"   "واقي شاشة زجاجي"          accessory  A-GLASS   45     120    100

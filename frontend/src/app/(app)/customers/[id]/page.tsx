@@ -17,6 +17,8 @@ import {
   TrendingUp,
   Receipt,
   Wrench,
+  Smartphone,
+  ShieldCheck,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -94,6 +96,11 @@ export default function CustomerDetailPage() {
   const statement = useQuery<{ data: StatementRow[] }>({
     queryKey: ["customer-statement", id],
     queryFn: async () => (await api.get(`/customers/${id}/statement`)).data,
+  });
+
+  const devices = useQuery<{ data: any[] }>({
+    queryKey: ["customer-devices", id],
+    queryFn: async () => (await api.get(`/customers/${id}/devices`)).data,
   });
 
   if (customer.isLoading || !customer.data) return <DetailSkeleton />;
@@ -304,6 +311,49 @@ export default function CustomerDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Owned devices (IMEI tracking) */}
+      {(devices.data?.data?.length ?? 0) > 0 && (
+        <Card className="card-elevated">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2">
+              <Smartphone className="h-4 w-4" /> الأجهزة المملوكة
+            </CardTitle>
+            <CardDescription>
+              {devices.data!.data.length} جهاز مسجَّل بـ IMEI لهذا العميل
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="divide-y">
+              {devices.data!.data.map((d: any) => (
+                <div key={d.id} className="px-4 py-3 flex items-center justify-between">
+                  <div className="min-w-0">
+                    <div className="font-medium">{d.product_name || "—"}</div>
+                    <code className="text-xs text-muted-foreground font-mono" dir="ltr">
+                      {d.imei || d.serial_number}
+                    </code>
+                    {d.sold_at && (
+                      <div className="text-[11px] text-muted-foreground tabular mt-0.5">
+                        اشترى في {formatDate(d.sold_at)}
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-left shrink-0 flex flex-col items-end gap-1">
+                    {d.is_under_warranty ? (
+                      <span className="pill pill-success">
+                        <ShieldCheck className="h-3 w-3" /> ضمان ساري
+                      </span>
+                    ) : d.warranty_ends_at ? (
+                      <span className="pill pill-muted">منتهي الضمان</span>
+                    ) : null}
+                    <span className="pill pill-info text-[10px]">{d.status}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Repairs history */}
       {repairsList.length > 0 && (

@@ -22,6 +22,7 @@ import {
   Search,
   Sparkles,
   Activity,
+  Smartphone,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { logout } from "@/lib/api";
@@ -40,6 +41,7 @@ const sections: { heading: string; items: { href: string; label: string; icon: a
     items: [
       { href: "/products", label: "المنتجات", icon: Package },
       { href: "/inventory", label: "المخزون", icon: Boxes },
+      { href: "/devices", label: "الأجهزة (IMEI)", icon: Smartphone },
       { href: "/customers", label: "العملاء", icon: Users },
       { href: "/suppliers", label: "الموردين", icon: Truck },
       { href: "/repairs", label: "الصيانة", icon: Wrench },

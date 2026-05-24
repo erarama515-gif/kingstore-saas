@@ -67,6 +67,17 @@ class RepairTicket(Base, TimestampMixin, SoftDeleteMixin, TenantScopedMixin):
     imei: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     problem: Mapped[str] = mapped_column(String(500), nullable=False)
 
+    # Linked DeviceInstance when the customer's phone was previously sold
+    # through this tenant. Set by the service at ticket creation by looking
+    # up the IMEI. Nullable — walk-in repairs of devices we never sold are
+    # still supported and just have this field empty.
+    device_instance_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("device_instances.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
     estimated_cost: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False, default=Decimal("0"), server_default="0")
     actual_cost: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False, default=Decimal("0"), server_default="0")
 
