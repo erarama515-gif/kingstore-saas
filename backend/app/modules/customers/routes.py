@@ -205,11 +205,8 @@ def statement_route(customer_id: uuid.UUID):
 def customer_devices_route(customer_id: uuid.UUID):
     """List all devices owned by this customer (status=sold or under_repair)."""
     tid = _tenant_id()
-    # Verify the customer belongs to this tenant first
-    cust = repo.get_by_id(db.session, customer_id)
-    if cust is None or cust.tenant_id != tid:
-        from werkzeug.exceptions import NotFound
-        raise NotFound("Customer not found.")
+    # Verify the customer belongs to this tenant first (raises NotFound if missing)
+    service.get_customer(tenant_id=tid, customer_id=customer_id)
     from app.modules.devices import service as device_service
     devices = device_service.list_for_customer(tenant_id=tid, customer_id=customer_id)
     return ok([
