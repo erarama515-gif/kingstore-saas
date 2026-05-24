@@ -32,6 +32,7 @@ import {
 import { api } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { AnimatedNumber } from "@/components/animated-number";
+import { Sparkline } from "@/components/sparkline";
 import { formatMoney, formatNumber } from "@/lib/utils";
 
 // ---------- Types ----------
@@ -80,6 +81,14 @@ export default function DashboardPage() {
   }
   const d = dashboard.data;
 
+  // Trend deltas — last-7 vs prior-7 days revenue, used by KPI cards.
+  const series = trend.data || [];
+  const last7 = series.slice(-7).reduce((a, b) => a + Number(b.sales), 0);
+  const prev7 = series.slice(-14, -7).reduce((a, b) => a + Number(b.sales), 0);
+  const salesDelta = prev7 > 0 ? ((last7 - prev7) / prev7) * 100 : 0;
+  const salesSpark = series.slice(-14).map((p) => ({ value: Number(p.sales) }));
+  const profitSpark = series.slice(-14).map((p) => ({ value: Number(p.profit) }));
+
   return (
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
@@ -108,6 +117,9 @@ export default function DashboardPage() {
           icon={Wallet}
           tone="success"
           subtitle="رصيد لحظي من القيود"
+          sparkData={salesSpark}
+          sparkColor="var(--chart-2)"
+          delta={salesDelta}
         />
         <Kpi
           title="ديون مستحقة لنا"
@@ -115,18 +127,24 @@ export default function DashboardPage() {
           icon={HandCoins}
           tone={Number(d.ar_total) > 0 ? "warn" : "default"}
           subtitle="من العملاء"
+          sparkData={profitSpark}
+          sparkColor="var(--chart-3)"
         />
         <Kpi
           title="قيمة المخزون"
           value={d.inventory_value}
           icon={Boxes}
           subtitle="بسعر التكلفة"
+          sparkData={salesSpark}
+          sparkColor="var(--chart-1)"
         />
         <Kpi
           title="رصيد البنك"
           value={d.bank_balance}
           icon={Banknote}
           subtitle={d.bank_balance === "0" ? "(لا تحركات)" : ""}
+          sparkData={salesSpark}
+          sparkColor="var(--chart-4)"
         />
       </motion.div>
 
@@ -331,12 +349,18 @@ function Kpi({
   subtitle,
   icon: Icon,
   tone = "default",
+  sparkData,
+  sparkColor = "var(--chart-1)",
+  delta,
 }: {
   title: string;
   value: string;
   subtitle?: string;
   icon: React.ComponentType<{ className?: string }>;
   tone?: "default" | "success" | "warn" | "danger";
+  sparkData?: { value: number }[];
+  sparkColor?: string;
+  delta?: number;
 }) {
   const accent = {
     default: "text-foreground",
@@ -355,10 +379,10 @@ function Kpi({
       variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0 } }}
       transition={{ duration: 0.25, ease: "easeOut" }}
     >
-      <Card className="card-elevated h-full">
-        <CardContent className="p-5">
+      <Card className="card-elevated h-full overflow-hidden relative">
+        <CardContent className="p-5 relative z-10">
           <div className="flex items-start justify-between gap-4">
-            <div className="space-y-1">
+            <div className="space-y-1 min-w-0">
               <div className="text-xs uppercase tracking-wide text-muted-foreground">
                 {title}
               </div>
@@ -373,15 +397,34 @@ function Kpi({
                   }
                 />
               </div>
-              {subtitle && (
-                <div className="text-xs text-muted-foreground">{subtitle}</div>
-              )}
+              <div className="flex items-center gap-2">
+                {subtitle && (
+                  <div className="text-xs text-muted-foreground">{subtitle}</div>
+                )}
+                {delta !== undefined && Number.isFinite(delta) && delta !== 0 && (
+                  <span
+                    className={`text-[10px] font-semibold tabular ${
+                      delta > 0
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : "text-red-600 dark:text-red-400"
+                    }`}
+                  >
+                    {delta > 0 ? "▲" : "▼"} {Math.abs(delta).toFixed(0)}%
+                  </span>
+                )}
+              </div>
             </div>
-            <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${ring}`}>
+            <div className={`h-10 w-10 rounded-lg flex items-center justify-center shrink-0 ${ring}`}>
               <Icon className="h-5 w-5" />
             </div>
           </div>
         </CardContent>
+        {/* Sparkline as decorative background ribbon at the bottom */}
+        {sparkData && sparkData.length > 0 && (
+          <div className="absolute bottom-0 left-0 right-0 h-10 opacity-70">
+            <Sparkline data={sparkData} color={sparkColor} height={40} />
+          </div>
+        )}
       </Card>
     </motion.div>
   );

@@ -54,7 +54,25 @@ export default function CustomersPage() {
         rows={list.data?.data || []}
         rowHref={(c) => `/customers/${c.id}`}
         columns={[
-          { header: "الاسم", render: (c) => <span className="font-medium">{c.name}</span> },
+          {
+            header: "الاسم",
+            render: (c) => {
+              const spent = Number(c.total_spent_cached || 0);
+              const debt = Number(c.debt_cached || 0);
+              const seg =
+                debt > 5000 ? { label: "متعثر", cls: "pill-danger" } :
+                spent >= 30000 ? { label: "VIP", cls: "pill-success" } :
+                spent >= 5000 ? { label: "منتظم", cls: "pill-info" } :
+                spent > 0 ? { label: "جديد", cls: "pill-muted" } :
+                { label: "غير نشط", cls: "pill-muted" };
+              return (
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">{c.name}</span>
+                  <span className={`pill ${seg.cls} text-[10px]`}>{seg.label}</span>
+                </div>
+              );
+            },
+          },
           { header: "الهاتف", render: (c) => <span className="tabular text-sm">{c.phone || "—"}</span> },
           { header: "البريد", render: (c) => c.email || "—" },
           { header: "الزيارات", render: (c) => <span className="tabular">{c.visits_count}</span> },
