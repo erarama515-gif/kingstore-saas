@@ -19,6 +19,7 @@ import {
   Sun,
   LogOut,
   Search,
+  Activity,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { clearTokens } from "@/lib/api";
@@ -104,6 +105,7 @@ export function CommandPalette() {
             <Item icon={Wallet}          label="المصاريف" onSelect={() => go("/expenses")} />
             <Item icon={Wrench}          label="الصيانة" onSelect={() => go("/repairs")} />
             <Item icon={BarChart3}       label="التقارير" onSelect={() => go("/reports")} />
+            <Item icon={Activity}        label="سجل النشاط" onSelect={() => go("/activity")} />
             <Item icon={Wallet}          label="رأس المال" onSelect={() => go("/capital")} />
           </Command.Group>
 

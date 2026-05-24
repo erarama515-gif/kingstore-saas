@@ -55,6 +55,24 @@ export default function PosPage() {
     enabled: search.length === 0 || search.length >= 1,
   });
 
+  // Stock levels for the current branch — keyed by product_id for fast lookup
+  const stockQuery = useQuery<{ data: { product_id: string; qty_on_hand: number }[] }>({
+    queryKey: ["stock-levels", branchId],
+    queryFn: async () =>
+      (
+        await api.get("/inventory/stock-levels", {
+          params: { branch_id: branchId, per_page: 500 },
+        })
+      ).data,
+    enabled: !!branchId,
+    refetchInterval: 30_000,
+  });
+  const stockByProduct = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const s of stockQuery.data?.data || []) m.set(s.product_id, s.qty_on_hand);
+    return m;
+  }, [stockQuery.data]);
+
   const subtotal = useMemo(
     () =>
       lines.reduce(
@@ -176,19 +194,41 @@ export default function PosPage() {
         </Card>
 
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
-          {(productsQuery.data?.data || []).map((p) => (
-            <button
-              key={p.id}
-              onClick={() => addProduct(p)}
-              className="text-right p-3 rounded-lg border bg-card hover:border-primary hover:shadow transition-all"
-            >
-              <div className="font-semibold line-clamp-2 min-h-[2.5rem]">{p.name}</div>
-              <div className="text-xs text-muted-foreground mt-1">
-                {p.code || p.barcode || ""}
-              </div>
-              <div className="font-bold text-primary mt-2">{formatMoney(p.price)}</div>
-            </button>
-          ))}
+          {(productsQuery.data?.data || []).map((p) => {
+            const qty = stockByProduct.get(p.id);
+            const stockTone =
+              qty === undefined ? "muted" :
+              qty <= 0 ? "danger" :
+              qty <= 3 ? "warn" : "success";
+            const stockLabel =
+              qty === undefined ? "—" :
+              qty <= 0 ? "نفد" :
+              `${qty} متاح`;
+            const outOfStock = qty !== undefined && qty <= 0;
+            return (
+              <button
+                key={p.id}
+                onClick={() => addProduct(p)}
+                disabled={outOfStock}
+                className={`text-right p-3 rounded-lg border bg-card hover:border-primary hover:shadow transition-all relative ${
+                  outOfStock ? "opacity-60 cursor-not-allowed" : ""
+                }`}
+              >
+                <span className={`pill pill-${stockTone} absolute top-2 left-2`}>
+                  {stockLabel}
+                </span>
+                <div className="font-semibold line-clamp-2 min-h-[2.5rem] pe-12">
+                  {p.name}
+                </div>
+                <div className="text-xs text-muted-foreground mt-1 tabular" dir="ltr">
+                  {p.code || p.barcode || ""}
+                </div>
+                <div className="font-bold text-primary mt-2 tabular">
+                  {formatMoney(p.price)}
+                </div>
+              </button>
+            );
+          })}
         </div>
         <Button variant="outline" size="sm" onClick={addServiceLine}>
           <Plus className="h-4 w-4" /> إضافة بند خدمة

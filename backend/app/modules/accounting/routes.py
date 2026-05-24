@@ -289,3 +289,51 @@ def _user_uuid(identity: str | None) -> uuid.UUID | None:
         return uuid.UUID(identity)
     except ValueError:
         return None
+
+
+@accounting_bp.get("/activity")
+@require_perm(Permission.ACCOUNTING_READ)
+def activity_route():
+    """Recent journal-entry activity feed.
+
+    Returns the latest N entries (default 50, max 200) for the tenant,
+    optionally filtered by ``source`` (sale|purchase|expense|capital|...) and
+    ``branch_id``. Powers the dashboard activity panel and the /activity page.
+    """
+    tenant_id = service.current_tenant_required()
+    from sqlalchemy import select
+    try:
+        limit = max(1, min(200, int(request.args.get("limit", 50))))
+    except (TypeError, ValueError):
+        limit = 50
+    src_filter = (request.args.get("source") or "").strip() or None
+    branch = _parse_uuid(request.args.get("branch_id"))
+
+    stmt = (
+        select(JournalEntry)
+        .where(JournalEntry.tenant_id == tenant_id)
+        .order_by(JournalEntry.posted_at.desc())
+        .limit(limit)
+    )
+    if src_filter:
+        stmt = stmt.where(JournalEntry.source == src_filter)
+    if branch is not None:
+        stmt = stmt.where(JournalEntry.branch_id == branch)
+
+    entries = db.session.execute(stmt).scalars().all()
+    return ok([
+        {
+            "id": str(e.id),
+            "entry_date": e.entry_date.isoformat(),
+            "posted_at": e.posted_at.isoformat() if e.posted_at else None,
+            "source": e.source,
+            "source_ref": e.source_ref,
+            "reference": e.reference,
+            "description": e.description,
+            "branch_id": str(e.branch_id) if e.branch_id else None,
+            # Compute a single magnitude so the UI can show "amount" even
+            # though entries are debit/credit balanced.
+            "amount": str(sum((l.debit for l in e.lines), Decimal("0"))),
+        }
+        for e in entries
+    ])

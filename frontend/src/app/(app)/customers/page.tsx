@@ -52,23 +52,24 @@ export default function CustomersPage() {
 
       <DataTable<Customer>
         rows={list.data?.data || []}
+        rowHref={(c) => `/customers/${c.id}`}
         columns={[
-          { header: "الاسم", render: (c) => c.name },
-          { header: "الهاتف", render: (c) => c.phone || "—" },
+          { header: "الاسم", render: (c) => <span className="font-medium">{c.name}</span> },
+          { header: "الهاتف", render: (c) => <span className="tabular text-sm">{c.phone || "—"}</span> },
           { header: "البريد", render: (c) => c.email || "—" },
-          { header: "الزيارات", render: (c) => String(c.visits_count) },
+          { header: "الزيارات", render: (c) => <span className="tabular">{c.visits_count}</span> },
           {
             header: "إجمالي المشتريات",
-            render: (c) => formatMoney(c.total_spent_cached),
+            render: (c) => <span className="tabular">{formatMoney(c.total_spent_cached)}</span>,
           },
           {
             header: "المديونية",
             render: (c) => {
               const v = Number(c.debt_cached);
-              return (
-                <span className={v > 0 ? "text-amber-600 font-semibold" : ""}>
-                  {formatMoney(c.debt_cached)}
-                </span>
+              return v > 0 ? (
+                <span className="pill pill-warn tabular">{formatMoney(c.debt_cached)}</span>
+              ) : (
+                <span className="text-muted-foreground">—</span>
               );
             },
           },

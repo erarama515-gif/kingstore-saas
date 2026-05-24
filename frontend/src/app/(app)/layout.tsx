@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sidebar } from "@/components/layout/sidebar";
+import { Topbar } from "@/components/layout/topbar";
 import { CommandPalette } from "@/components/command-palette";
 import { loadTokens, me } from "@/lib/api";
 
@@ -35,6 +36,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <Sidebar />
       <CommandPalette />
       <main className="mr-64 p-6">
+        <Topbar />
         <AnimatePresence mode="wait">
           <motion.div
             key={pathname}

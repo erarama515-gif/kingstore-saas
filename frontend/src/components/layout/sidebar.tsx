@@ -21,6 +21,7 @@ import {
   Truck,
   Search,
   Sparkles,
+  Activity,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { logout } from "@/lib/api";
@@ -52,6 +53,7 @@ const sections: { heading: string; items: { href: string; label: string; icon: a
       { href: "/expenses", label: "المصروفات", icon: Wallet },
       { href: "/capital", label: "رأس المال", icon: Banknote },
       { href: "/reports", label: "التقارير", icon: BarChart3 },
+      { href: "/activity", label: "سجل النشاط", icon: Activity },
     ],
   },
 ];

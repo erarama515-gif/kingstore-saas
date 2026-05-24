@@ -31,6 +31,7 @@ import {
 } from "recharts";
 import { api } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { AnimatedNumber } from "@/components/animated-number";
 import { formatMoney, formatNumber } from "@/lib/utils";
 
 // ---------- Types ----------
@@ -361,7 +362,17 @@ function Kpi({
               <div className="text-xs uppercase tracking-wide text-muted-foreground">
                 {title}
               </div>
-              <div className={`kpi-value ${accent}`}>{formatMoney(value)}</div>
+              <div className={`kpi-value ${accent}`}>
+                <AnimatedNumber
+                  value={Number(value)}
+                  formatter={(n) =>
+                    n.toLocaleString("en-US", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    }) + " ج.م"
+                  }
+                />
+              </div>
               {subtitle && (
                 <div className="text-xs text-muted-foreground">{subtitle}</div>
               )}
