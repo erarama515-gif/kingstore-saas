@@ -49,6 +49,11 @@ def _user_uuid() -> uuid.UUID | None:
 
 
 def _line_payload(l: SaleLine) -> SaleLineResponse:
+    # Lazy-resolve the linked device so the response carries IMEI + warranty.
+    device = None
+    if l.device_instance_id:
+        from app.modules.devices.models import DeviceInstance
+        device = db.session.get(DeviceInstance, l.device_instance_id)
     return SaleLineResponse(
         id=l.id,
         product_id=l.product_id,
@@ -59,6 +64,10 @@ def _line_payload(l: SaleLine) -> SaleLineResponse:
         line_total=l.line_total,
         cost_snapshot=l.cost_snapshot,
         is_service=l.is_service,
+        device_instance_id=l.device_instance_id,
+        device_imei=(device.imei if device else None),
+        device_serial=(device.serial_number if device else None),
+        warranty_ends_at=(device.warranty_ends_at if device else None),
     )
 
 

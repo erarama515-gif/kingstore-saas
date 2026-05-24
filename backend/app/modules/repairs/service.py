@@ -22,6 +22,8 @@ from app.modules.accounting import service as acct
 from app.modules.accounting.coa_seed import SystemAccount
 from app.modules.accounting.service import LineInput
 from app.modules.customers.models import Customer
+from app.modules.devices import service as devices_svc
+from app.modules.devices.models import DeviceInstance, DeviceStatus
 from app.modules.repairs.models import RepairStatus, RepairTicket
 from app.modules.repairs.schemas import RepairCreate, RepairDeliverRequest
 
@@ -42,6 +44,26 @@ def create_ticket(
         cust = session.get(Customer, payload.customer_id)
         if cust is None or cust.tenant_id != tenant_id or cust.deleted_at is not None:
             raise NotFound("Customer not found.")
+    # If an IMEI was provided, try to auto-link the matching DeviceInstance.
+    # We support both "device we previously sold" (sold → under_repair) and
+    # "stranger's phone the shop is repairing as a service" (no device link).
+    linked_device: Optional[DeviceInstance] = None
+    if payload.imei and payload.imei.strip():
+        linked_device = devices_svc.lookup_by_identifier(
+            tenant_id=tenant_id, identifier=payload.imei.strip()
+        )
+        if linked_device is not None:
+            if linked_device.status == DeviceStatus.under_repair:
+                raise Conflict(
+                    f"Device {linked_device.identifier()} is already under repair."
+                )
+            # If the device is currently sold, flip it to under_repair so the
+            # customer's owned-devices list shows the right state.
+            if linked_device.status == DeviceStatus.sold:
+                devices_svc.mark_under_repair(
+                    tenant_id=tenant_id, device_id=linked_device.id
+                )
+
     for attempt in range(3):
         cnt = session.execute(
             select(func.count()).select_from(RepairTicket).where(
@@ -64,13 +86,19 @@ def create_ticket(
             date_in=date_t.today(),
             notes=payload.notes,
             technician_id=technician_id,
+            device_instance_id=(linked_device.id if linked_device else None),
         )
         session.add(ticket)
         try:
             session.flush()
             log.info(
                 "repair_created",
-                extra={"tenant_id": str(tenant_id), "ticket_id": str(ticket.id), "no": ticket_number},
+                extra={
+                    "tenant_id": str(tenant_id),
+                    "ticket_id": str(ticket.id),
+                    "no": ticket_number,
+                    "device_linked": str(linked_device.id) if linked_device else None,
+                },
             )
             return ticket
         except IntegrityError:
@@ -199,6 +227,15 @@ def deliver(
     ticket.delivery_journal_entry_id = entry.id
     if payload.notes:
         ticket.notes = (ticket.notes or "") + f"\n[delivered] {payload.notes}"
+
+    # If this repair was linked to one of our previously-sold devices,
+    # return it to the customer (status: under_repair → sold).
+    if ticket.device_instance_id:
+        dev = session.get(DeviceInstance, ticket.device_instance_id)
+        if dev is not None and dev.status == DeviceStatus.under_repair:
+            devices_svc.return_from_repair(
+                tenant_id=tenant_id, device_id=ticket.device_instance_id
+            )
 
     # Update customer cache
     if ticket.customer_id:

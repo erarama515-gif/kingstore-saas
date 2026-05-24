@@ -170,6 +170,16 @@ class SaleLine(Base, TenantScopedMixin):
         nullable=True,
     )
 
+    # IMEI/serial-tracked devices: the specific DeviceInstance that was
+    # sold on this line. Mandatory when the product has track_by_imei or
+    # track_by_serial. NULL otherwise.
+    device_instance_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("device_instances.id", ondelete="RESTRICT"),
+        nullable=True,
+        index=True,
+    )
+
     def __repr__(self) -> str:  # pragma: no cover
         return f"<SaleLine {self.description} {self.qty}@{self.unit_price}>"
 

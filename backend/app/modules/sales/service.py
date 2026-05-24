@@ -32,6 +32,8 @@ from app.modules.accounting import service as acct
 from app.modules.accounting.coa_seed import SystemAccount
 from app.modules.accounting.service import LineInput
 from app.modules.customers.models import Customer
+from app.modules.devices import service as devices_svc
+from app.modules.devices.models import DeviceInstance, DeviceStatus
 from app.modules.inventory import service as inventory_svc
 from app.modules.products.models import Product
 from app.modules.sales import repository as repo
@@ -68,6 +70,49 @@ def create_sale(
 
     # Pre-flight: line totals, product validity, prices.
     products_by_id = _resolve_products(tenant_id, payload.lines)
+
+    # Pre-flight: tracked-device validation (atomic across all lines).
+    # Every tracked product line must reference an in_stock device that
+    # belongs to this tenant + product + branch. We fetch them up front so
+    # one bad IMEI rejects the whole sale before any side effects happen.
+    devices_by_line: dict[int, DeviceInstance] = {}
+    for idx, li in enumerate(payload.lines):
+        if li.is_service or li.product_id is None:
+            continue
+        p = products_by_id.get(li.product_id)
+        if p is None:
+            continue
+        if not (p.track_by_imei or p.track_by_serial):
+            if li.device_instance_id:
+                raise BadRequest(
+                    f"Line {idx + 1}: product '{p.name}' is not IMEI-tracked; "
+                    f"do not pass device_instance_id."
+                )
+            continue
+        # Tracked product → device_instance_id required
+        if not li.device_instance_id:
+            raise BadRequest(
+                f"Line {idx + 1}: product '{p.name}' requires an IMEI / serial. "
+                f"Select a device before submitting."
+            )
+        dev = session.get(DeviceInstance, li.device_instance_id)
+        if dev is None or dev.tenant_id != tenant_id or dev.deleted_at is not None:
+            raise BadRequest(f"Line {idx + 1}: device not found.")
+        if dev.product_id != li.product_id:
+            raise BadRequest(
+                f"Line {idx + 1}: device IMEI does not belong to product '{p.name}'."
+            )
+        if dev.status != DeviceStatus.in_stock:
+            raise BadRequest(
+                f"Line {idx + 1}: device {dev.identifier()} is not available "
+                f"(status: {dev.status.value})."
+            )
+        if dev.branch_id is not None and dev.branch_id != payload.branch_id:
+            raise BadRequest(
+                f"Line {idx + 1}: device {dev.identifier()} is at a different branch."
+            )
+        devices_by_line[idx] = dev
+
     subtotal = Decimal("0")
     discount_total = Decimal("0")
     line_records: list[dict] = []  # filled below; persisted after Sale insert
@@ -112,7 +157,7 @@ def create_sale(
     # Per-line: persist SaleLine + decrement inventory (which posts COGS).
     has_inventory = False
     has_service = False
-    for rec in line_records:
+    for idx, rec in enumerate(line_records):
         li: SaleLineInput = rec["line_input"]
         line = SaleLine(
             tenant_id=tenant_id,
@@ -125,6 +170,7 @@ def create_sale(
             line_total=rec["line_total"],
             cost_snapshot=rec["cost_snapshot"],
             is_service=li.is_service,
+            device_instance_id=li.device_instance_id,
         )
         session.add(line)
         session.flush()
@@ -141,6 +187,26 @@ def create_sale(
             )
             line.stock_movement_id = res.movement.id
             has_inventory = True
+
+            # Mark tracked device as sold + link customer + warranty.
+            # We REQUIRE a customer for tracked sales (warranty needs an owner).
+            dev = devices_by_line.get(idx)
+            if dev is not None:
+                if customer is None:
+                    raise BadRequest(
+                        "Tracked-device sales require a customer (warranty owner)."
+                    )
+                p = products_by_id.get(li.product_id)
+                warranty_days = (p.warranty_period_days or 0) if p else 0
+                devices_svc.mark_sold(
+                    tenant_id=tenant_id,
+                    device_id=dev.id,
+                    customer_id=customer.id,
+                    sale_id=sale.id,
+                    sale_line_id=line.id,
+                    warranty_period_days=warranty_days,
+                    sold_on=sale_date,
+                )
         else:
             has_service = True
 

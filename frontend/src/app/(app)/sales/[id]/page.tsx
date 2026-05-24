@@ -30,6 +30,10 @@ type Line = {
   line_total: string;
   cost_snapshot: string;
   is_service: boolean;
+  device_instance_id?: string | null;
+  device_imei?: string | null;
+  device_serial?: string | null;
+  warranty_ends_at?: string | null;
 };
 type Sale = {
   id: string;
@@ -192,9 +196,21 @@ export default function SaleDetailPage() {
               {s.lines.map((l) => (
                 <tr key={l.id} className="border-t">
                   <td className="p-3">
-                    {l.description}
+                    <div>{l.description}</div>
                     {l.is_service && (
-                      <span className="ms-2 pill pill-info">خدمة</span>
+                      <span className="mt-1 inline-block pill pill-info">خدمة</span>
+                    )}
+                    {(l.device_imei || l.device_serial) && (
+                      <div className="mt-1 flex flex-wrap gap-1.5 text-[11px]">
+                        <code className="font-mono bg-muted px-1.5 py-0.5 rounded" dir="ltr">
+                          IMEI: {l.device_imei || l.device_serial}
+                        </code>
+                        {l.warranty_ends_at && (
+                          <span className="pill pill-success">
+                            ضمان حتى {formatDate(l.warranty_ends_at)}
+                          </span>
+                        )}
+                      </div>
                     )}
                   </td>
                   <td className="p-3 text-center tabular">{l.qty}</td>
